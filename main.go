@@ -32,6 +32,7 @@ func main() {
 		panic(err)
 	}
 
+	invalidCertificateDetected := false
 	var wg sync.WaitGroup
 	for _, catalogEntry := range catalogEntries {
 		for _, endpoint := range catalogEntry.Endpoints {
@@ -45,6 +46,7 @@ func main() {
 				}
 
 				if u.Scheme != "https" {
+					fmt.Println("PASS (not https):", endpoint.Interface, catalogEntry.Name)
 					return
 				}
 
@@ -58,17 +60,24 @@ func main() {
 				}
 
 				if ok := crypto.CertHasSAN(cert); !ok {
+					invalidCertificateDetected = true
 					err := cert.VerifyHostname(u.Host)
 					if isHostnameError := crypto.IsHostnameError(err); isHostnameError {
-						fmt.Println("Invalid certificate:", endpoint.Interface, catalogEntry.Name, "(isHostnameError)")
+						fmt.Println("INVALID:", endpoint.Interface, catalogEntry.Name, "(isHostnameError)")
 					} else {
-						fmt.Println("Invalid certificate:", endpoint.Interface, catalogEntry.Name)
+						fmt.Println("INVALID:", endpoint.Interface, catalogEntry.Name)
 					}
+				} else {
+					fmt.Println("PASS:", endpoint.Interface, catalogEntry.Name)
 				}
 			}(catalogEntry, endpoint)
 		}
 	}
 	wg.Wait()
+	if invalidCertificateDetected {
+		fmt.Println("At least one invalid certificate was detected.")
+		os.Exit(1)
+	}
 }
 
 func getLeafCertificate(host string) (*x509.Certificate, error) {

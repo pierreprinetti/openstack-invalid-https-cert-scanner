@@ -2,7 +2,9 @@ package main
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
 	"sync"
@@ -36,36 +38,38 @@ func main() {
 		for _, endpoint := range catalogEntry.Endpoints {
 			wg.Add(1)
 			go func(catalogEntry tokens.CatalogEntry, endpoint tokens.Endpoint) {
-				fmt.Println(endpointOK(endpoint.URL), catalogEntry.Name, endpoint.Interface)
-				wg.Done()
+				defer wg.Done()
+
+				u, err := url.Parse(endpoint.URL)
+				if err != nil {
+					panic(err)
+				}
+
+				if u.Scheme != "https" {
+					return
+				}
+
+				cert, err := getLeafCertificate(u.Host)
+				if err != nil {
+					panic(err)
+				}
+
+				if ok := crypto.CertHasSAN(cert); !ok {
+					fmt.Println("Invalid certificate:", endpoint.Interface, catalogEntry.Name)
+				}
 			}(catalogEntry, endpoint)
 		}
 	}
 	wg.Wait()
 }
 
-func endpointOK(fullURL string) bool {
-	u, err := url.Parse(fullURL)
+func getLeafCertificate(host string) (*x509.Certificate, error) {
+	log.Print(host)
+	conn, err := tls.Dial("tcp", host, &tls.Config{InsecureSkipVerify: true})
 	if err != nil {
-		panic(err)
-	}
-
-	if u.Scheme != "https" {
-		return true
-	}
-	conf := &tls.Config{
-		InsecureSkipVerify: true,
-	}
-	conn, err := tls.Dial("tcp", u.Host, conf)
-	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	defer conn.Close()
 
-	for _, cert := range conn.ConnectionState().PeerCertificates {
-		if !crypto.CertHasSAN(cert) {
-			return false
-		}
-	}
-	return true
+	return conn.ConnectionState().PeerCertificates[0], nil
 }

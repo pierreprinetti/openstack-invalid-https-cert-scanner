@@ -49,6 +49,10 @@ func main() {
 					return
 				}
 
+				if u.Port() == "" {
+					u.Host = u.Host + ":443"
+				}
+
 				cert, err := getLeafCertificate(u.Host)
 				if err != nil {
 					panic(err)

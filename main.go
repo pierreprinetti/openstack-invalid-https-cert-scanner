@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
-	"log"
 	"net/url"
 	"os"
 	"sync"
@@ -73,7 +72,6 @@ func main() {
 }
 
 func getLeafCertificate(host string) (*x509.Certificate, error) {
-	log.Print(host)
 	conn, err := tls.Dial("tcp", host, &tls.Config{InsecureSkipVerify: true})
 	if err != nil {
 		return nil, err

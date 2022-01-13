@@ -55,7 +55,12 @@ func main() {
 				}
 
 				if ok := crypto.CertHasSAN(cert); !ok {
-					fmt.Println("Invalid certificate:", endpoint.Interface, catalogEntry.Name)
+					err := cert.VerifyHostname(u.Host)
+					if isHostnameError := crypto.IsHostnameError(err); isHostnameError {
+						fmt.Println("Invalid certificate:", endpoint.Interface, catalogEntry.Name, "(isHostnameError)")
+					} else {
+						fmt.Println("Invalid certificate:", endpoint.Interface, catalogEntry.Name)
+					}
 				}
 			}(catalogEntry, endpoint)
 		}

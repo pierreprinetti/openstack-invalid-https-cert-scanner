@@ -46,7 +46,7 @@ func main() {
 				}
 
 				if u.Scheme != "https" {
-					fmt.Println("PASS (not https):", endpoint.Interface, catalogEntry.Name)
+					fmt.Printf("PASS (not https): %s %s (%s)\n", endpoint.Interface, catalogEntry.Name, u.Host)
 					return
 				}
 
@@ -63,12 +63,12 @@ func main() {
 					invalidCertificateDetected = true
 					err := cert.VerifyHostname(u.Host)
 					if isHostnameError := crypto.IsHostnameError(err); isHostnameError {
-						fmt.Println("INVALID:", endpoint.Interface, catalogEntry.Name, "(isHostnameError)")
+						fmt.Printf("INVALID: %s %s (%s) (isHostnameError)\n", endpoint.Interface, catalogEntry.Name, u.Host)
 					} else {
-						fmt.Println("INVALID:", endpoint.Interface, catalogEntry.Name)
+						fmt.Printf("INVALID: %s %s (%s)\n", endpoint.Interface, catalogEntry.Name, u.Host)
 					}
 				} else {
-					fmt.Println("PASS:", endpoint.Interface, catalogEntry.Name)
+					fmt.Printf("PASS: %s %s (%s)\n", endpoint.Interface, catalogEntry.Name, u.Host)
 				}
 			}(catalogEntry, endpoint)
 		}
